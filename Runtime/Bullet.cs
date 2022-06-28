@@ -7,6 +7,7 @@ namespace OdemIdea.Ballistics
     [AddComponentMenu("Ballistics/Bullet")]
     public class Bullet : MonoBehaviour
     {
+        public System.Action<BulletInfo> action;
         [SerializeField]
         [Tooltip("m/s")]
         private float m_speed = 900f;
@@ -40,6 +41,8 @@ namespace OdemIdea.Ballistics
         private const float minSpeed = 0.5f;
         private static readonly Color[] m_colors = new Color[] { Color.blue, Color.green, Color.magenta, Color.red, Color.cyan, Color.yellow };
 
+        private List<BulletHit> m_hits = new List<BulletHit>();
+
         private void Start()
         {
             m_currentSpeed = m_speed;
@@ -50,6 +53,7 @@ namespace OdemIdea.Ballistics
             m_currentSpeed *= 1 - m_drag;
             if (m_currentSpeed < minSpeed)
             {
+                action.Invoke(new BulletInfo() { hits = m_hits }); //return action on all hits
                 Destroy(gameObject);
                 return;
             }
@@ -75,7 +79,7 @@ namespace OdemIdea.Ballistics
                 float angle = 180f - Vector3.Angle(transform.forward, hit.normal);
                 float penetrationCoefficient = Mathf.Max(m_density - hitMaterial.density, Mathf.Epsilon) * 1000; //the more penetration coeficient is, the easier to penetrate that material
                 float P = Mathf.Clamp(m_currentSpeed * (m_mass / 1000) / penetrationCoefficient * Mathf.Sin(angle * Mathf.PI / 180) * 700, 0, 100); // P = V * m / (D1 - D) / sin(angle) | P is chance of ricochet, V is speed, m is mass, D1 is density of bullet, D is density of object
-                print(P + "   " + angle + "   " + Mathf.Sin(angle * Mathf.PI / 180));
+
                 //check ricochet
                 if (Random.Range(0f, 100f) < P && angle > 10)
                 {
@@ -87,10 +91,17 @@ namespace OdemIdea.Ballistics
                     Vector3 newDir = Vector3.Reflect(transform.forward, hit.normal);
                     transform.forward = newDir;
                     transform.Rotate(RandomVector3(-m_angleRicochet, m_angleRicochet));
-
-                    Debug.DrawLine(transform.position, hit.point, Color.cyan, 9); //draw line from bullet to wall
-
+#if UNITY_EDITOR
+                    if (BallisticsManager.instance.debug)
+                        Debug.DrawLine(transform.position, hit.point, Color.cyan, 9); //draw line from bullet to wall
+#endif
                     transform.position = hit.point;
+
+                    Vector3[] hits = new Vector3[1];
+                    hits[0] = hit.point;
+
+                    m_hits.Add(new BulletHit() { collider = hit.collider, angle = angle, speed = m_currentSpeed, positions = hits }); //add hit to list
+
                     Cast(transform.position + transform.forward * distRemained);
                 }
                 else
@@ -105,9 +116,10 @@ namespace OdemIdea.Ballistics
                     Vector3 newDir = Vector3.Lerp(transform.forward, -hit.normal, m_angleLerpPenetration);
                     transform.forward = newDir;
                     transform.Rotate(RandomVector3(-m_anglePenetration, m_anglePenetration));
-
-                    Debug.DrawLine(transform.position, hit.point, RandomColor(), 9); //draw line from bullet to wall
-
+#if UNITY_EDITOR
+                    if (BallisticsManager.instance.debug)
+                        Debug.DrawLine(transform.position, hit.point, RandomColor(), 9); //draw line from bullet to wall
+#endif
                     transform.position = hit.point - hit.normal * 0.001f;
                     //check inner raycast
                     //find next surface
@@ -116,11 +128,7 @@ namespace OdemIdea.Ballistics
                     {
                         startPoint = hit2.point + hit2.normal * 0.001f;
                     }
-                    else
-                    {
-
-                    }
-
+                    int hitCount = 2;
                     //cast ray backwards to find end of first surface
                     if (Physics.Linecast(startPoint, transform.position, out RaycastHit hit3, Physics.AllLayers, QueryTriggerInteraction.Ignore))
                     {
@@ -133,8 +141,18 @@ namespace OdemIdea.Ballistics
                     }
                     else
                     {
-                        Debug.LogWarning($"Surface with one side found: {hit.collider.gameObject.name}", hit.collider.gameObject);
+                        hitCount = 1;
+#if UNITY_EDITOR
+                        if (BallisticsManager.instance.debug)
+                            Debug.LogWarning($"Surface with one side found: {hit.collider.gameObject.name}", hit.collider.gameObject);
+#endif
                     }
+                    Vector3[] hits = new Vector3[hitCount];
+                    hits[0] = hit.point;
+                    if (hitCount == 2) hits[1] = hit3.point;
+
+                    m_hits.Add(new BulletHit() { collider = hit.collider, angle = angle, speed = m_currentSpeed, positions = hits }); //add hit to list
+
                     Cast(transform.position + transform.forward * Mathf.Min(distRemained, m_currentSpeed));
                 }
                 

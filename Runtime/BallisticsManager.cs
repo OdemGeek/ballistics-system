@@ -12,6 +12,7 @@ namespace OdemIdea.Ballistics
     {
         [SerializeField]
         private BallisticsData m_ballisticsData;
+        public bool debug = true;
         public static BallisticsManager instance;
 
         public static bool initialized
