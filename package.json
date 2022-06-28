@@ -1,0 +1,16 @@
+{
+  "name": "com.odemdeveloper.ballisticssystem",
+  "version": "0.1.0",
+  "displayName": "Ballistics System",
+  "description": "System for simple bullet ballistics with surface materials.",
+  "documentationUrl": "https://example.com/",
+  "changelogUrl": "https://example.com/changelog.html",
+  "licensesUrl": "https://example.com/licensing.html",
+  "keywords": [],
+  "author": {
+    "name": "Odem",
+    "email": "odemdevelop@gmail.com",
+    "url": "https://odemtut.github.io"
+  },
+  "type": "library"
+}
