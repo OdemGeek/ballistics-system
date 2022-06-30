@@ -4,7 +4,6 @@ using UnityEditor;
 namespace OdemIdea.Ballistics
 {
     [CustomEditor(typeof(MaterialHolder))]
-    [CanEditMultipleObjects]
     public class MaterialHolderEditor : Editor
     {
         SerializedProperty materialName;
