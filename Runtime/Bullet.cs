@@ -31,14 +31,13 @@ namespace OdemIdea.Ballistics
         [Tooltip("Randomize angle")]
         private float m_angleRicochet = 3f;
         [SerializeField]
-        [Range(0f, 0.999f)]
-        private float m_drag = 0.077f;
+        private float m_drag = 1.4f;
 
         private float m_currentSpeed; //m/s
         private int m_countColor = 0;
         private float m_penetratedDistance = 0f;
 
-        private const float minSpeed = 0.5f;
+        private const float minSpeed = 10f;
         private static readonly Color[] m_colors = new Color[] { Color.blue, Color.green, Color.magenta, Color.red, Color.cyan, Color.yellow };
 
         private List<BulletHit> m_hits = new List<BulletHit>();
@@ -50,14 +49,14 @@ namespace OdemIdea.Ballistics
 
         private void FixedUpdate()
         {
-            m_currentSpeed *= 1 - m_drag;
+            m_currentSpeed *= Mathf.Clamp01(1 - m_drag * Time.fixedDeltaTime);
             if (m_currentSpeed < minSpeed)
             {
                 action.Invoke(new BulletInfo() { hits = m_hits }); //return action on all hits
                 Destroy(gameObject);
                 return;
             }
-            Vector3 endPos = transform.position + transform.forward * m_currentSpeed;
+            Vector3 endPos = transform.position + transform.forward * m_currentSpeed * Time.fixedDeltaTime;
             Cast(endPos);
         }
 
@@ -111,7 +110,7 @@ namespace OdemIdea.Ballistics
 
                     float castDist = Vector3.Distance(transform.position, hit.point);
 
-                    float distRemained = m_currentSpeed /** (1 - m_drag * 5)*/ - castDist; //remaining distance
+                    float distRemained = m_currentSpeed * Time.fixedDeltaTime /** (1 - m_drag * 5)*/ - castDist; //remaining distance
 
                     Vector3 newDir = Vector3.Lerp(transform.forward, -hit.normal, m_angleLerpPenetration);
                     transform.forward = newDir;
@@ -124,7 +123,7 @@ namespace OdemIdea.Ballistics
                     //check inner raycast
                     //find next surface
                     Vector3 startPoint = transform.position + transform.forward * distRemained;
-                    if (Physics.Linecast(transform.position, transform.position + transform.forward * distRemained, out RaycastHit hit2, Physics.AllLayers, QueryTriggerInteraction.Ignore))
+                    if (Physics.Linecast(transform.position, transform.position + transform.forward * 9999999999, out RaycastHit hit2, Physics.AllLayers, QueryTriggerInteraction.Ignore))
                     {
                         startPoint = hit2.point + hit2.normal * 0.001f;
                     }
